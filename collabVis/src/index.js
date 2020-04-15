@@ -2,62 +2,86 @@ import mapboxgl from 'mapbox-gl';
 import { Deck } from '@deck.gl/core';
 import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { MapboxLayer } from '@deck.gl/mapbox';
+import { BrushingExtension } from '@deck.gl/extensions';
 
-// import * as data from "./data/allCollabs.json";
-const data = require("./data/allCollabs.json")
-console.log(data);
+
+const collabData = require("./data/allCollabs.json")
+let instData = require("./data/allInstitutions.json")
+instData = instData.map( d => {
+    let o = Object.assign({}, d);
+    o.coordinates = [d.lng, d.lat]
+    return o
+})
+
+console.log(instData)
 
 
 mapboxgl.accessToken = process.env.MAPBOX_TOKEN;
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/light-v9',
+    style: 'mapbox://styles/jeffmacinnes/ck8tvbqnd0rgg1iodvukijed2',
     center: [-122.4, 37.79],
     zoom: 3,
-    pitch: 30
+    pitch: 30,
+    renderWorldCopies: false
   });
 
+const brushingExtension = new BrushingExtension();
 
-const arcLayer = new ArcLayer({
-    id: 'arc-layer',
-    data,
-    getWidth: 12,
+let arcColor = [247, 38, 113, 40];
+let dotColor = [0, 255, 255];
+let enableBrushing = false;
+
+let collabLayer = new MapboxLayer({
+    id: 'collaborations',
+    type: ArcLayer,
+    data: collabData,
+    getWidth: 2,
+    getHeight: .2,
     pickable: true,
+    brushingRadius: 40000,
+    brushingEnabled: enableBrushing,
     getSourcePosition: d => d.instA_coords,
     getTargetPosition: d => d.instB_coords,
-    getSourceColor: [0, 255, 0, 0],
-    getTargetColor: [255, 0, 0, 0]
-})
+    getSourceColor: d => arcColor,
+    getTargetColor: d => arcColor,
+    extensions: [brushingExtension],
+    onHover: info => setHover(info)
+});
+
+let instLayer = new MapboxLayer({
+    id: 'institutions',
+    type: ScatterplotLayer,
+    data: instData,
+    getPosition: d => d.coordinates,
+    filled: true,
+    getFillColor: dotColor,
+    radiusMinPixels: 1,
+    getRadius: d => 500
+});
 
 map.on('load', () => {
-    map.addLayer(new MapboxLayer({
-        id: 'deckgl-circle',
-        type: ScatterplotLayer,
-        data: [
-          {position: [-122.402, 37.79], color: [255, 0, 0], radius: 1000}
-        ],
-        getPosition: d => d.position,
-        getColor: d => d.color,
-        getRadius: d => d.radius,
-        opacity: 0.3
-    }))
-
-    map.addLayer(new MapboxLayer({
-        id: 'collaborations',
-        type: ArcLayer,
-        data,
-        getWidth: 2,
-        getStrokeWidth: 2,
-        getHeight: .2,
-        pickable: true,
-        getSourcePosition: d => d.instA_coords,
-        getTargetPosition: d => d.instB_coords,
-        getSourceColor: [120, 0, 0, 20],
-        getTargetColor: [120, 0, 0, 20]
-    }))
+    map.addLayer(collabLayer)
+    map.addLayer(instLayer)
 })
 
+function setHover(info){
+    if (!info.picked){
+        if (enableBrushing){
+            console.log('brushing off')
+            enableBrushing = false;
+            collabLayer.setProps({brushingEnabled: enableBrushing});
+        }
+    } else {
+        if (!enableBrushing){
+            console.log('brushing on')
+            enableBrushing = true;
+            collabLayer.setProps({brushingEnabled: enableBrushing});
+        }
+    }
 
+
+}
 
 
 // new Deck({
