@@ -9,11 +9,19 @@
         <style>
             body { margin: 0; padding: 0; }
             #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+            #test-button {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                z-index: 100;
+            }
         </style>
     </head>
     <body>
-        <h1>TEST</h1>
+        <button id="test-button" type="button">TEST</button>
         <div id="map"></div>
+        <canvas id="deck-canvas"></canvas>
         <script src="main.bundle.js"></script>
     </body>
 </html>
