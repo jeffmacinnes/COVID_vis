@@ -1,8 +1,16 @@
 # data store
-#data/*
+data/*
 
 # env file
 .env
+
+# API keys
+notebooks/googleAPI_key.txt
+notebooks/NCBI_API_key.txt
+notebooks/mapboxAPI_key.txt
+
+# heavy maps
+crossGeoCollabs.html
 
 # jupyter notebook checkpoints
 *.ipynb_checkpoints/
