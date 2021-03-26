@@ -38,6 +38,25 @@ Obtaining the list of article metadata for 2020 COVID articles, getting the pubd
 
 ## Citations Pipeline
 
+All citation data was obtained using the Pubmed APIs here https://www.ncbi.nlm.nih.gov/pmc/tools/cites-citedby/
+
+The notebook `cite_1_getCitations` retrieves citation data for each article in the dataset and stores it in the file `articleCitations.json`. The citations are taken from the `PMC` database, and not the `PubMed`. For each article, this file contains:
+
+* `nCitations`: the number of PMC citations in the current article
+* `nCitations_covid`: of the total citations, the number of citations that are from the set of covid articles used in this project.
+* `citations`: list of PMCIDs of every citation
+* `citations_covid`: list of PMCIDs for the citations that are from the set of covid articles used in this project
+* `nCitedBy`: the number of subsequent articles that cited the current article
+* `nCitedBy_covid`: the number of subsequent articles from the set of covid articles used in this project that cited the current article  
+* `citedBy`: list of PMCIDs of all subsequent articles that cited the current article
+* `citedBy_covid`: list of PMCIDs of articles  from the set of covid articles used in this project that cited the current article
+
+Ultimately, this data didn't make it to the website, but is still there for reference. 
+
+For the website, we changed the search to use the `Pubmed database` instead of the `PMC database` so that it would more representative of the true citations in the article (there are more papers in the Pubmed database than the PMC one).
+
+See below for more information on how the website citation data was obtained.  
+
 
 ## Web-site data pipeline
 
@@ -59,20 +78,51 @@ This dataset resulted from the search string:
 
 The list of titles used to generate the hero datavis was obtained by taking a random sample of 1000 titles from the full articles database `data/articleMetadata.json`
 
-### Papers-per-Year
+###  Section 1 - 2020 Articles Overview
 
-The `papersPerYear.csv` was obtained by going to pubmed central and using the covid-19 search string, without the publication date range:
+#### papers per year plot:
+The `papersPerYear.csv` was obtained by going to **pubmed central** and using the search string `"coronavirus"[MeSH Terms] OR "coronavirus"[All Fields] OR "COV"[All Fields]` and then applying a custom filter (using the left hand panel) to define a date range. I did this for every year from 1980-onwards. 
 
-```
-"COVID-19"[All Fields] OR "COVID-19"[MeSH Terms] OR "COVID-19 Vaccines"[All Fields] OR "COVID-19 Vaccines"[MeSH Terms] OR "COVID-19 serotherapy"[All Fields] OR "COVID-19 Nucleic Acid Testing"[All Fields] OR "covid-19 nucleic acid testing"[MeSH Terms] OR "COVID-19 Serological Testing"[All Fields] OR "covid-19 serological testing"[MeSH Terms] OR "COVID-19 Testing"[All Fields] OR "covid-19 testing"[MeSH Terms] OR "SARS-CoV-2"[All Fields] OR "sars-cov-2"[MeSH Terms] OR "Severe Acute Respiratory Syndrome Coronavirus 2"[All Fields] OR "NCOV"[All Fields] OR "2019 NCOV"[All Fields] OR (("coronavirus"[MeSH Terms] OR "coronavirus"[All Fields] OR "COV"[All Fields]) ) 
-```
+*NOTE:* I used this shortened search string -- looking for `coronavirus` related papers only -- instead of the larger search string used for the full set of 2020 papers because the larger search string would artificially inflate the number of papers in 2020 compared to prior years. That larger search string includes things like "COVID-19" which obviously wasn't around prior to 2019. This ensures a fairer representation in the papers-per-year plot, but necessitates a little more explanation about how the larger 2020 dataset is different. 
 
-Next, using the returned results, I applied a custom filter (using the left hand panel) to define a date range for each year from 1965 onwards. For instance, 1965 was setting the custom date range to `1965/01/01` to `1965/12/31`. 
-
-I manually recorded the number of articles returned by this filter. Repeated for every year thereafter. 
+*NOTE:* For the sake of completeness, I ran the same query by year at **PubMed** (instead of PMC). These data are included as a separate column in the `papersPerYear.csv` table (the pattern is largely the same).  
 
 
+#### 2020 article stats:
+* *93,593 articles in 2020*: the number of **VALID** PMCIDs returned using the search string above on **pubmed central** and filtering to restrict to 2020 only. There were 96,625 articles total, but was unable to scrap ~3k for some reason or another. 
+* *203 countries*: Number of unique countries found in geocoded article metadata for the set of 93,593 articles above
+* *11 articles per hour*: 93,593 articles / 366 days (leap year) / 24 hours
+* *6799 journals*: Number of unique journals found in article metadata for the set of 93,593 articles above
 
+*  *comparisons against all other papers in PMC* (for context)
+	* from this site https://www.ncbi.nlm.nih.gov/pmc/about/intro/ we can calculate the number of new articles added to PMC each fiscal year (Oct-Sep). There were **745,357** articles added in 2020; **618,229** in 2019. Given that these are fiscal years, not calendar years, these stats should be talked about as approximations
+	* In 2020, there were 79,433 "coronavirus" articles (from `papersPerYear.csv`), or 10.6% of the 745,357 2020 papers. ~1 out of every 10 papers. 
+	* In 2019, there were 4,782 "coronavirus" articles, or 0.77% of the 618,229 articles. ~1 out of every 130 articles. 
+
+
+### Section II - Collaboration Map
+The data for the collaboration map was prepared for the web using the collaboration data collected and geocoded via the pipeline described in detail here: https://github.com/jeffmacinnes/COVID_vis
+
+The set of collaborations and geoIDs datasets were stripped of superflous data fields and compressed to make as small as possible for the web. 
+
+The total number of authors by day was calculated by summing the number of authors on each article from Jan 1st 2020 to the current date. 
+
+The total collaborations by day was calculated by summing the number of collaborations per article for each article from Jan 1st 2020 to the current date. The number of unique pairwise collaborations between authors was calculated as: `nAuths * (nAuths-1) / 2`
+
+
+### Section III - Citation Graph
+
+The citation network plot data was obtained using the Pubmed citation database, accessed via the APIs here: https://www.ncbi.nlm.nih.gov/pmc/tools/cites-citedby/
+
+This data is accurate as of March 2nd 2021. 
+
+The data for each stage of the plot:
+
+* We pulled the PMIDs of every article that was cited by the Moderna and Pfizer vaccine safety and efficacy papers published in Dec 2020. These are 1st deg citations. 
+
+* For each of those articles, we next pulled the PMIDs of every article cited within the 1st deg citation. These are 2nd deg citations. 
+
+* For the full set of articles (vax articles, 1st deg citations, 2nd deg citations), we used the cited-by API to get the number of subsequent articles that cited each article. 
 
 # Appendix
 ## Pubmed search string
